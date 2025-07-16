@@ -21,7 +21,6 @@ public class ServiceInterfaceTemplate {
     public static void generate(String entityName, String packageName, String idType, String classJavadoc, List<FieldDeclaration> fields) throws IOException {
         TypeName entityType = ClassName.get(packageName, entityName);
         TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
-        ClassName queryWrapperType = ClassName.get(QueryWrapper.class);
         ClassName pageType = ClassName.get(Page.class);
         ParameterizedTypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
 

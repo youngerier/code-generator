@@ -3,6 +3,7 @@ package com.example.demo;
 import com.example.demo.template.DtoTemplate;
 import com.example.demo.template.MapStructMapperTemplate;
 import com.example.demo.template.MyBatisFlexMapperTemplate;
+import com.example.demo.template.QueryTemplate;
 import com.example.demo.template.ServiceImplTemplate;
 import com.example.demo.template.ServiceInterfaceTemplate;
 import com.github.javaparser.StaticJavaParser;
@@ -59,10 +60,11 @@ public class CodeGenerator {
             ServiceInterfaceTemplate.generate(className, packageName, idType, classJavadoc, fields);
             ServiceImplTemplate.generate(className, packageName, idType, classJavadoc, fields);
             MapStructMapperTemplate.generate(className, packageName, classJavadoc);
+            QueryTemplate.generate(className, packageName, fields, classJavadoc);
 
-            System.out.println("Code generation completed successfully for " + entityClass.getName());
+            log.info("Code generation completed successfully for {}", entityClass.getName());
         } catch (IOException e) {
-            System.err.println("Error during code generation: " + e.getMessage());
+            log.info("Error during code generation: {}", e.getMessage());
         }
     }
 }
