@@ -21,6 +21,7 @@ public class ServiceInterfaceTemplate {
     public static void generate(String entityName, String packageName, String idType, String classJavadoc, List<FieldDeclaration> fields) throws IOException {
         TypeName entityType = ClassName.get(packageName, entityName);
         TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
+        ClassName queryType = ClassName.get(packageName + ".dto", entityName + "Query");
         ClassName pageType = ClassName.get(Page.class);
         ParameterizedTypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
 
@@ -52,31 +53,21 @@ public class ServiceInterfaceTemplate {
                 .addJavadoc("Deletes a " + entityName + " by ID.\n@param id the ID of the " + entityName + " to delete\n")
                 .build();
 
-        MethodSpec.Builder selectListBuilder = MethodSpec.methodBuilder("selectList")
+        MethodSpec selectList = MethodSpec.methodBuilder("selectList")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listType)
-                .addJavadoc("Queries a list of " + entityName + " based on conditions.\n");
+                .addParameter(queryType, "query")
+                .addJavadoc("Queries a list of " + entityName + " based on conditions, excluding deleted records.\n@param query the query conditions\n@return the list of " + entityName + " entities\n")
+                .build();
 
-        MethodSpec.Builder selectPageBuilder = MethodSpec.methodBuilder("selectPage")
+        MethodSpec selectPage = MethodSpec.methodBuilder("selectPage")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(ParameterizedTypeName.get(pageType, entityType))
                 .addParameter(TypeName.INT, "pageNumber")
                 .addParameter(TypeName.INT, "pageSize")
-                .addJavadoc("Queries a paginated list of " + entityName + " based on conditions.\n@param pageNumber the page number\n@param pageSize the page size\n");
-
-        // 为每个字段添加参数
-        for (FieldDeclaration field : fields) {
-            VariableDeclarator variable = field.getVariables().get(0);
-            String fieldName = variable.getNameAsString();
-            TypeName fieldType = TemplateUtils.resolveTypeName(variable.getTypeAsString());
-            selectListBuilder.addParameter(fieldType, fieldName)
-                    .addJavadoc("@param $N the $N to filter by\n", fieldName, fieldName);
-            selectPageBuilder.addParameter(fieldType, fieldName)
-                    .addJavadoc("@param $N the $N to filter by\n", fieldName, fieldName);
-        }
-
-        selectListBuilder.addJavadoc("@return the list of " + entityName + " entities\n");
-        selectPageBuilder.addJavadoc("@return the paginated list of " + entityName + " entities\n");
+                .addParameter(queryType, "query")
+                .addJavadoc("Queries a paginated list of " + entityName + " based on conditions, excluding deleted records.\n@param pageNumber the page number\n@param pageSize the page size\n@param query the query conditions\n@return the paginated list of " + entityName + " entities\n")
+                .build();
 
         TypeSpec service = TypeSpec.interfaceBuilder(entityName + "Service")
                 .addModifiers(Modifier.PUBLIC)
@@ -85,8 +76,8 @@ public class ServiceInterfaceTemplate {
                 .addMethod(insert)
                 .addMethod(updateById)
                 .addMethod(deleteById)
-                .addMethod(selectListBuilder.build())
-                .addMethod(selectPageBuilder.build())
+                .addMethod(selectList)
+                .addMethod(selectPage)
                 .build();
 
         JavaFile javaFile = JavaFile.builder(packageName + ".service", service)
