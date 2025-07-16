@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.model.User;
+import com.example.demo.model.dal.entity.User;
 import org.junit.jupiter.api.Test;
 
 public class CodeGenTest {

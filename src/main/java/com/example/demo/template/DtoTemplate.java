@@ -1,17 +1,11 @@
 package com.example.demo.template;
 
 
-import com.example.demo.TemplateUtils;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.squareup.javapoet.*;
 import lombok.Data;
 
-
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.VariableDeclarator;
-import com.squareup.javapoet.*;
-import lombok.Data;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;

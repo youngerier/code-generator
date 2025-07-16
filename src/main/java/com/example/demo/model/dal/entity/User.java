@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.demo.model.dal.entity;
 
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.Table;
@@ -25,5 +25,7 @@ public class User {
      */
     @Column("email_address")
     private String email;
+
+    private Boolean deleted;
 
 }

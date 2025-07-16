@@ -1,7 +1,6 @@
 package com.example.demo.template;
 
 
-import com.example.demo.TemplateUtils;
 import com.mybatisflex.core.BaseMapper;
 import com.squareup.javapoet.*;
 

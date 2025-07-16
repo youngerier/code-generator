@@ -1,10 +1,7 @@
 package com.example.demo.template;
 
 
-import com.example.demo.TemplateUtils;
 import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.VariableDeclarator;
-import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.squareup.javapoet.*;
 

@@ -1,6 +1,5 @@
 package com.example.demo.template;
 
-import com.example.demo.TemplateUtils;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -27,6 +26,7 @@ public class ServiceImplTemplate {
         ClassName pageType = ClassName.get(Page.class);
         ClassName queryType = ClassName.get(packageName + ".dto", entityName + "Query");
         ParameterizedTypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
+        ClassName tableDefType = ClassName.get(packageName + ".dal", entityName + "TableDef");
 
         FieldSpec mapperField = FieldSpec.builder(mapperType, "mapper", Modifier.PRIVATE, Modifier.FINAL)
                 .addJavadoc("The MyBatis-Flex mapper for " + entityName + "\n")
@@ -80,7 +80,7 @@ public class ServiceImplTemplate {
                 .returns(listType)
                 .addAnnotation(Override.class)
                 .addParameter(queryType, "query")
-                .addStatement("$T queryWrapper = $T.create().from($T.class)", queryWrapperType, queryWrapperType, entityType);
+                .addStatement("$T queryWrapper = $T.create().from($T.$L)", queryWrapperType, queryWrapperType, tableDefType, toFieldName(entityName));
 
         MethodSpec.Builder selectPage = MethodSpec.methodBuilder("selectPage")
                 .addModifiers(Modifier.PUBLIC)
@@ -89,7 +89,7 @@ public class ServiceImplTemplate {
                 .addParameter(TypeName.INT, "pageNumber")
                 .addParameter(TypeName.INT, "pageSize")
                 .addParameter(queryType, "query")
-                .addStatement("$T queryWrapper = $T.create().from($T.class)", queryWrapperType, queryWrapperType, entityType)
+                .addStatement("$T queryWrapper = $T.create().from($T.$L)", queryWrapperType, queryWrapperType, tableDefType, toFieldName(entityName))
                 .addStatement("$T<$T> page = new $T<>(pageNumber, pageSize)", pageType, entityType, pageType);
 
         // 为每个字段添加 QueryWrapper 条件
@@ -98,19 +98,19 @@ public class ServiceImplTemplate {
             String fieldName = variable.getNameAsString();
             String columnName = TemplateUtils.getColumnName(field, fieldName);
 
-            selectList.addStatement("if (query.get$N() != null) queryWrapper.and($T.$N.eq(query.get$N()))",
-                    capitalize(fieldName), entityType, fieldName, capitalize(fieldName));
-            selectPage.addStatement("if (query.get$N() != null) queryWrapper.and($T.$N.eq(query.get$N()))",
-                    capitalize(fieldName), entityType, fieldName, capitalize(fieldName));
+            selectList.addStatement("queryWrapper.and($T.$L.$N.eq(query.get$N()))",
+                    tableDefType, toFieldName(entityName), fieldName, capitalize(fieldName));
+            selectPage.addStatement("queryWrapper.and($T.$L.$N.eq(query.get$N()))",
+                    tableDefType, toFieldName(entityName), fieldName, capitalize(fieldName));
         }
 
         // 添加 deleted 字段的默认条件
-        selectList.addStatement("queryWrapper.and($T.deleted.eq($T.FALSE))", entityType, ClassName.get(Boolean.class))
+        selectList.addStatement("queryWrapper.and($T.$L.deleted.eq($T.FALSE))", tableDefType, toFieldName(entityName), ClassName.get(Boolean.class))
                 .addStatement("return mapper.selectListByQuery(queryWrapper)")
-                .addJavadoc("Queries a list of " + entityName + " based on conditions.\n@param query the query conditions\n@return the list of " + entityName + " entities\n");
-        selectPage.addStatement("queryWrapper.and($T.deleted.eq($T.FALSE))", entityType, ClassName.get(Boolean.class))
+                .addJavadoc("Queries a list of " + entityName + " based on conditions, excluding deleted records.\n@param query the query conditions\n@return the list of " + entityName + " entities\n");
+        selectPage.addStatement("queryWrapper.and($T.$L.deleted.eq($T.FALSE))", tableDefType, toFieldName(entityName), ClassName.get(Boolean.class))
                 .addStatement("return mapper.paginate(page, queryWrapper)")
-                .addJavadoc("Queries a paginated list of " + entityName + " based on conditions.\n@param pageNumber the page number\n@param pageSize the page size\n@param query the query conditions\n@return the paginated list of " + entityName + " entities\n");
+                .addJavadoc("Queries a paginated list of " + entityName + " based on conditions, excluding deleted records.\n@param pageNumber the page number\n@param pageSize the page size\n@param query the query conditions\n@return the paginated list of " + entityName + " entities\n");
 
         TypeSpec serviceImpl = TypeSpec.classBuilder(entityName + "ServiceImpl")
                 .addModifiers(Modifier.PUBLIC)
@@ -138,5 +138,22 @@ public class ServiceImplTemplate {
             return str;
         }
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    private static String toFieldName(String className) {
+        if (className == null || className.isEmpty()) {
+            return className;
+        }
+        StringBuilder fieldName = new StringBuilder();
+        fieldName.append(Character.toLowerCase(className.charAt(0)));
+        for (int i = 1; i < className.length(); i++) {
+            char c = className.charAt(i);
+            if (Character.isUpperCase(c)) {
+                fieldName.append("_").append(Character.toLowerCase(c));
+            } else {
+                fieldName.append(c);
+            }
+        }
+        return fieldName.toString();
     }
 }

@@ -6,6 +6,7 @@ import com.example.demo.template.MyBatisFlexMapperTemplate;
 import com.example.demo.template.QueryTemplate;
 import com.example.demo.template.ServiceImplTemplate;
 import com.example.demo.template.ServiceInterfaceTemplate;
+import com.example.demo.template.TemplateUtils;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -23,6 +24,7 @@ import java.util.List;
 public class CodeGenerator {
 
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
+    private static final String ENTITY_PACKAGE = "dal.entity";
 
     public static void generate(Class<?> entityClass) {
         try {
@@ -39,7 +41,7 @@ public class CodeGenerator {
 
             // 获取类和元数据
             String className = entityClass.getSimpleName();
-            String packageName = entityClass.getPackageName();
+            String packageName = entityClass.getPackageName().substring(0, entityClass.getPackageName().lastIndexOf(ENTITY_PACKAGE));
             ClassOrInterfaceDeclaration parsedClass = cu.getClassByName(className)
                     .orElseThrow(() -> new IllegalArgumentException(className + " class not found"));
 

@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.demo.template;
 
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -43,5 +43,29 @@ public class TemplateUtils {
                     return defaultName;
                 })
                 .orElse(defaultName);
+    }
+
+    public static String toFieldName(String className) {
+        if (className == null || className.isEmpty()) {
+            return className;
+        }
+        StringBuilder fieldName = new StringBuilder();
+        fieldName.append(Character.toLowerCase(className.charAt(0)));
+        for (int i = 1; i < className.length(); i++) {
+            char c = className.charAt(i);
+            if (Character.isUpperCase(c)) {
+                fieldName.append("_").append(Character.toLowerCase(c));
+            } else {
+                fieldName.append(c);
+            }
+        }
+        return fieldName.toString();
+    }
+
+    public static String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 }
