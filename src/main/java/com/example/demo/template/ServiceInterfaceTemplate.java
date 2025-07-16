@@ -16,7 +16,7 @@ public class ServiceInterfaceTemplate {
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
     public static void generate(String entityName, String packageName, String idType, String classJavadoc, List<FieldDeclaration> fields) throws IOException {
-        TypeName entityType = ClassName.get(packageName, entityName);
+        TypeName entityType = ClassName.get(packageName + ".dal.entity", entityName);
         TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
         ClassName queryType = ClassName.get(packageName + ".dto", entityName + "Query");
         ClassName pageType = ClassName.get(Page.class);

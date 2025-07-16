@@ -24,7 +24,7 @@ import java.util.List;
 public class CodeGenerator {
 
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
-    private static final String ENTITY_PACKAGE = "dal.entity";
+    private static final String ENTITY_PACKAGE = ".dal.entity";
 
     public static void generate(Class<?> entityClass) {
         try {

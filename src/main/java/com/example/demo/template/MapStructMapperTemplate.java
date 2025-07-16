@@ -14,7 +14,7 @@ public class MapStructMapperTemplate {
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
     public static void generate(String entityName, String packageName, String classJavadoc) throws IOException {
-        TypeName entityType = ClassName.get(packageName, entityName);
+        TypeName entityType = ClassName.get(packageName  + ".dal.entity", entityName);
         ClassName dtoType = ClassName.get(packageName + ".dto", entityName + "Dto");
 
         MethodSpec toEntity = MethodSpec.methodBuilder("toEntity")

@@ -14,7 +14,7 @@ public class MyBatisFlexMapperTemplate {
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
     public static void generate(String entityName, String packageName, String idType, String classJavadoc) throws IOException {
-        TypeName entityType = ClassName.get(packageName, entityName);
+        TypeName entityType = ClassName.get(packageName + ".dal.entity", entityName);
         TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
 
         TypeSpec mapper = TypeSpec.interfaceBuilder(entityName + "FlexMapper")

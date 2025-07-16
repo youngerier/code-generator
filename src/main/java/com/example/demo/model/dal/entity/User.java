@@ -5,6 +5,9 @@ import com.mybatisflex.annotation.Table;
 import com.mybatisflex.annotation.Column;
 import lombok.Data;
 
+/**
+ * 用户实体
+ */
 @Data
 @Table("tb_user")
 public class User {

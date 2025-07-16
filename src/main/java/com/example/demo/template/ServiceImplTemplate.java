@@ -18,7 +18,7 @@ public class ServiceImplTemplate {
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
     public static void generate(String entityName, String packageName, String idType, String classJavadoc, List<FieldDeclaration> fields) throws IOException {
-        TypeName entityType = ClassName.get(packageName, entityName);
+        TypeName entityType = ClassName.get(packageName + ".dal.entity", entityName);
         TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
         ClassName mapperType = ClassName.get(packageName + ".dal.mapper", entityName + "FlexMapper");
         ClassName serviceType = ClassName.get(packageName + ".service", entityName + "Service");
@@ -26,7 +26,7 @@ public class ServiceImplTemplate {
         ClassName pageType = ClassName.get(Page.class);
         ClassName queryType = ClassName.get(packageName + ".dto", entityName + "Query");
         ParameterizedTypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
-        ClassName tableDefType = ClassName.get(packageName + ".dal", entityName + "TableDef");
+        ClassName tableDefType = ClassName.get(packageName + ".dal.entity.table", entityName + "TableDef");
 
         FieldSpec mapperField = FieldSpec.builder(mapperType, "mapper", Modifier.PRIVATE, Modifier.FINAL)
                 .addJavadoc("The MyBatis-Flex mapper for " + entityName + "\n")
