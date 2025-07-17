@@ -85,13 +85,7 @@ public class CodeGenerator {
             throw new RuntimeException("Code generation failed", e);
         }
     }
-    
-    /**
-     * 静态方法保持向后兼容
-     */
-    public static void generate(Class<?> entityClass) {
-        new CodeGenerator().generate(entityClass);
-    }
+
     
     /**
      * 初始化模板列表
