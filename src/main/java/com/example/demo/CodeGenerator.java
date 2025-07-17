@@ -1,72 +1,121 @@
 package com.example.demo;
 
-import com.example.demo.template.DtoTemplate;
-import com.example.demo.template.MapStructMapperTemplate;
-import com.example.demo.template.MyBatisFlexMapperTemplate;
-import com.example.demo.template.QueryTemplate;
-import com.example.demo.template.ServiceImplTemplate;
-import com.example.demo.template.ServiceInterfaceTemplate;
-import com.example.demo.template.TemplateUtils;
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.comments.JavadocComment;
+import com.example.demo.codegen.config.CodeGenConfig;
+import com.example.demo.codegen.config.CodeGenConfigLoader;
+import com.example.demo.codegen.core.EntityMetadata;
+import com.example.demo.codegen.core.EntityParser;
+import com.example.demo.codegen.template.CodeTemplate;
+import com.example.demo.codegen.template.DtoCodeTemplate;
+import com.example.demo.codegen.template.MapperCodeTemplate;
+import com.example.demo.codegen.template.ServiceCodeTemplate;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 重构后的代码生成器
+ * 架构简洁清晰，支持配置化，去除硬编码
+ */
 @Slf4j
 public class CodeGenerator {
-
-    private static final Path OUTPUT_DIR = Paths.get("src/main/java");
-    private static final String ENTITY_PACKAGE = ".dal.entity";
-
-    public static void generate(Class<?> entityClass) {
+    
+    private final CodeGenConfig config;
+    private final EntityParser parser;
+    private final List<CodeTemplate> templates;
+    
+    public CodeGenerator(CodeGenConfig config) {
+        this.config = config;
+        this.parser = new EntityParser(config);
+        this.templates = initializeTemplates();
+    }
+    
+    /**
+     * 使用默认配置的构造器
+     */
+    public CodeGenerator() {
+        this(CodeGenConfig.builder()
+                .basePackage("com.example.demo.model")
+                .build());
+    }
+    
+    /**
+     * 从配置文件创建代码生成器
+     */
+    public static CodeGenerator fromConfigFile() {
+        return new CodeGenerator(CodeGenConfigLoader.loadFromClasspath());
+    }
+    
+    /**
+     * 从指定配置文件创建代码生成器
+     */
+    public static CodeGenerator fromConfigFile(String configFile) {
+        return new CodeGenerator(CodeGenConfigLoader.loadFromClasspath(configFile));
+    }
+    
+    /**
+     * 生成代码
+     */
+    public void generate(Class<?> entityClass) {
         try {
-            // 动态获取源码文件路径
-            String classPath = entityClass.getName().replace(".", "/") + ".java";
-            String sourcePath = OUTPUT_DIR + "/" + classPath;
-            File sourceFile = new File(sourcePath);
-            if (!sourceFile.exists()) {
-                throw new IllegalArgumentException("Source file not found: " + sourcePath);
+            // 解析实体元数据
+            EntityMetadata metadata = parser.parse(entityClass);
+            
+            // 更新配置中的基础包名
+            config.setBasePackage(metadata.getBasePackage());
+            
+            // 执行所有启用的模板
+            for (CodeTemplate template : templates) {
+                if (config.isTemplateEnabled(template.getTemplateName())) {
+                    try {
+                        template.generate(metadata, config);
+                        log.debug("Generated {} for {}", template.getTemplateName(), entityClass.getSimpleName());
+                    } catch (Exception e) {
+                        log.error("Failed to generate {} for {}: {}", 
+                                template.getTemplateName(), entityClass.getSimpleName(), e.getMessage());
+                    }
+                }
             }
-
-            // 解析源码
-            CompilationUnit cu = StaticJavaParser.parse(sourceFile);
-
-            // 获取类和元数据
-            String className = entityClass.getSimpleName();
-            String packageName = entityClass.getPackageName().substring(0, entityClass.getPackageName().lastIndexOf(ENTITY_PACKAGE));
-            ClassOrInterfaceDeclaration parsedClass = cu.getClassByName(className)
-                    .orElseThrow(() -> new IllegalArgumentException(className + " class not found"));
-
-            // 获取类上的 Javadoc 注释
-            String classJavadoc = parsedClass.getJavadocComment()
-                    .map(JavadocComment::getContent)
-                    .orElse("Generated class for " + className);
-
-            // 获取 @Id 字段的类型
-            String idType = TemplateUtils.getIdFieldType(parsedClass);
-
-            // 获取所有字段，用于生成 DTO 和 QueryWrapper 参数
-            List<FieldDeclaration> fields = parsedClass.getFields();
-
-            // 生成代码
-            DtoTemplate.generate(className, packageName, fields, classJavadoc);
-            MyBatisFlexMapperTemplate.generate(className, packageName, idType, classJavadoc);
-            ServiceInterfaceTemplate.generate(className, packageName, idType, classJavadoc, fields);
-            ServiceImplTemplate.generate(className, packageName, idType, classJavadoc, fields);
-            MapStructMapperTemplate.generate(className, packageName, classJavadoc);
-            QueryTemplate.generate(className, packageName, fields, classJavadoc);
-
-            log.info("Code generation completed successfully for {}", entityClass.getName());
+            
+            log.info("Code generation completed for {}", entityClass.getName());
+            
         } catch (IOException e) {
-            log.info("Error during code generation: {}", e.getMessage());
+            log.error("Error during code generation for {}: {}", entityClass.getName(), e.getMessage());
+            throw new RuntimeException("Code generation failed", e);
         }
+    }
+    
+    /**
+     * 静态方法保持向后兼容
+     */
+    public static void generate(Class<?> entityClass) {
+        new CodeGenerator().generate(entityClass);
+    }
+    
+    /**
+     * 初始化模板列表
+     */
+    private List<CodeTemplate> initializeTemplates() {
+        List<CodeTemplate> templateList = new ArrayList<>();
+        templateList.add(new DtoCodeTemplate());
+        templateList.add(new MapperCodeTemplate());
+        templateList.add(new ServiceCodeTemplate());
+        // 可以继续添加其他模板
+        return templateList;
+    }
+    
+    /**
+     * 添加自定义模板
+     */
+    public void addTemplate(CodeTemplate template) {
+        templates.add(template);
+    }
+    
+    /**
+     * 获取配置
+     */
+    public CodeGenConfig getConfig() {
+        return config;
     }
 }
