@@ -4,10 +4,10 @@ import com.example.demo.codegen.config.CodeGenConfig;
 import com.example.demo.codegen.config.CodeGenConfigLoader;
 import com.example.demo.codegen.core.EntityMetadata;
 import com.example.demo.codegen.core.EntityParser;
-import com.example.demo.codegen.template.CodeTemplate;
+import com.example.demo.codegen.core.CodeTemplate;
 import com.example.demo.codegen.template.DtoCodeTemplate;
 import com.example.demo.codegen.template.MapperCodeTemplate;
-import com.example.demo.codegen.template.ServiceCodeTemplate;
+import com.example.demo.codegen.template.ServiceImplCodeTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -94,8 +94,17 @@ public class CodeGenerator {
         List<CodeTemplate> templateList = new ArrayList<>();
         templateList.add(new DtoCodeTemplate());
         templateList.add(new MapperCodeTemplate());
-        templateList.add(new ServiceCodeTemplate());
-        // 可以继续添加其他模板
+        templateList.add(new ServiceImplCodeTemplate());
+        templateList.add(new ControllerCodeTemplate());
+        templateList.add(new RepositoryCodeTemplate());
+        templateList.add(new TestCodeTemplate());
+        templateList.add(new ApiDocCodeTemplate());
+        // 添加Repository模板
+        templateList.add(new RepositoryCodeTemplate());
+        // 添加单元测试模板
+        templateList.add(new TestCodeTemplate());
+        // 添加API文档模板
+        templateList.add(new ApiDocCodeTemplate());
         return templateList;
     }
     

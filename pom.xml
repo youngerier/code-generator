@@ -15,6 +15,10 @@
     <description>demo</description>
 
     <properties>
+
+        <!-- API文档 -->
+        <openapi.doc.version>2.6.0</openapi.doc.version>
+        <swagger-openapiv3.version>2.2.9</swagger-openapiv3.version>
         <java.version>17</java.version>
     </properties>
     <dependencies>
@@ -30,7 +34,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -67,6 +70,17 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger-openapiv3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${openapi.doc.version}</version>
         </dependency>
 
     </dependencies>

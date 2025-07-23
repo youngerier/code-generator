@@ -3,7 +3,7 @@ public class Iso8583msgDecoder extends ByteToMessageDecoder {
     private static final int LENGTH_FIELD_LENGTH = 4;
     private static final int MTI_LENGTH = 4;
 
-    MessageFactory<IsoMessage> messageFactory;
+    private MessageFactory<IsoMessage> messageFactory;
 
     public Iso8583msgDecoder() {
         try {
@@ -11,7 +11,8 @@ public class Iso8583msgDecoder extends ByteToMessageDecoder {
             this.messageFactory.setCharacterEncoding(StandardCharsets.UTF_8.name());
             this.messageFactory.setAssignDate(true);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("初始化ISO8583消息工厂失败", e);
+            throw new RuntimeException("初始化ISO8583消息工厂失败", e); // 快速失败，避免创建无效的解码器
         }
     }
 
@@ -23,87 +24,108 @@ public class Iso8583msgDecoder extends ByteToMessageDecoder {
      */
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        while (true) {
-            // 标记当前读取位置（用于异常时回滚）
-            in.markReaderIndex();
-
-            // 1. 至少需要4字节包长字段
-            if (in.readableBytes() < 4) {
-                if (in.readableBytes() > 0) {
-                    log.warn("❌至少需要4字节包长字段");
-                }
-                return;
-            }
-
-            int bodyLength = 0;
-            try {
-                bodyLength = parseLengthField(in);
-                if (bodyLength <= 0 || bodyLength > MAX_FRAME_LENGTH) {
-                    throw new IllegalArgumentException("非法长度: " + bodyLength);
-                }
-            } catch (Exception e) {
-                in.resetReaderIndex();
-                int discardBytes = in.readableBytes();
-                // 丢弃当前缓冲区所有数据
-                in.skipBytes(discardBytes);
-                log.info("❌ 无法解析长度字段{}，丢弃当前缓存 {} 字节，跳过错误包", bodyLength, discardBytes);
-                // 直接退出等待下次新数据，不继续解析
-                return;
-            }
-
-            // 2. 不够完整包体，等待更多数据
-            int totalFrameLength = LENGTH_FIELD_LENGTH + bodyLength;
-            int readableBytes = in.readableBytes();
-
-            if (readableBytes < totalFrameLength) {
-                // 半包，但先看看是否有足够数据读MTI
-                if (readableBytes >= LENGTH_FIELD_LENGTH + MTI_LENGTH) {
-                    // 读取MTI，判断是否合法
-                    int mtiStartIndex = in.readerIndex() + LENGTH_FIELD_LENGTH;
-                    byte[] mtiBytes = new byte[MTI_LENGTH];
-                    in.getBytes(mtiStartIndex, mtiBytes);
-                    String mtiStr = new String(mtiBytes, StandardCharsets.US_ASCII);
-
-                    if (!isValidIso8583Mti1993(mtiStr)) {
-                        // 非法 MTI，丢弃本次缓存
-                        in.skipBytes(readableBytes);
-                        log.warn("❌ 半包MTI非法: '{}', 丢弃当前缓存 {} 字节，跳过错误包", mtiStr, readableBytes);
-                    } else {
-                        // MTI合法，继续等真正的半包
-                        in.resetReaderIndex();
-                        log.info("⏳ 半包等待中: total={} 当前={}", totalFrameLength, readableBytes);
-                    }
-                } else {
-                    // 甚至连MTI都没读够，继续等待
-                    in.resetReaderIndex();
-                    log.info("⏳ 半包等待中（MTI未满）: total={} 当前={}", totalFrameLength, readableBytes);
-                }
-                return; // 或 continue 看你整体代码逻辑
-            }
-
-            // 先peek报文体的前4字节，解析MTI
-            int mtiStartIndex = in.readerIndex() + LENGTH_FIELD_LENGTH;
-            byte[] mtiBytes = new byte[MTI_LENGTH];
-            in.getBytes(mtiStartIndex, mtiBytes);
-
-            // 3. 读取数据
-            // 跳过长度字段，读取报文体
-            in.skipBytes(LENGTH_FIELD_LENGTH); // 跳过长度字段
-            byte[] messageBytes = new byte[bodyLength];
-            in.readBytes(messageBytes);
-
-            try {
-                IsoMessage isoMessage = messageFactory.parseMessage(messageBytes, 0);
-                if (isoMessage != null) {
-                    out.add(isoMessage);
-                    Console.log("✅ 解析成功 MTI: {}", String.format("%04X", isoMessage.getType()));
-                } else {
-                    log.warn("⚠️ 解析返回 null");
-                }
-            } catch (Exception e) {
-                log.error("❌ 解析 ISO8583 报文失败", e);
-            }
+        // 检查消息工厂是否初始化
+        if (messageFactory == null) {
+            log.error("ISO8583消息工厂未初始化");
+            ctx.fireExceptionCaught(new IllegalStateException("ISO8583消息工厂未初始化"));
+            return;
         }
+
+        // 不使用无限循环，让Netty框架负责多次调用
+        // 标记当前读取位置（用于异常时回滚）
+        in.markReaderIndex();
+
+        // 1. 至少需要4字节包长字段
+        if (in.readableBytes() < LENGTH_FIELD_LENGTH) {
+            // 数据不足，等待更多数据
+            return;
+        }
+
+        int bodyLength = 0;
+        try {
+            bodyLength = parseLengthField(in);
+            if (bodyLength <= 0 || bodyLength > MAX_FRAME_LENGTH) {
+                throw new IllegalArgumentException("非法长度: " + bodyLength);
+            }
+        } catch (Exception e) {
+            in.resetReaderIndex();
+            int discardBytes = in.readableBytes();
+            // 丢弃当前缓冲区所有数据
+            in.skipBytes(discardBytes);
+            log.warn("❌ 无法解析长度字段{}，丢弃当前缓存 {} 字节，跳过错误包", bodyLength, discardBytes);
+            // 向上层报告错误
+            out.add(new DecodingError("长度字段解析失败: " + e.getMessage()));
+            return;
+        }
+
+        // 2. 检查是否有足够的数据读取完整消息
+        int totalFrameLength = LENGTH_FIELD_LENGTH + bodyLength;
+        int readableBytes = in.readableBytes();
+
+        if (readableBytes < totalFrameLength) {
+            // 统一半包处理逻辑
+            // 检查MTI有效性，避免等待无效数据
+            if (readableBytes >= LENGTH_FIELD_LENGTH + MTI_LENGTH) {
+                String mtiStr = readMtiString(in, in.readerIndex() + LENGTH_FIELD_LENGTH);
+                
+                if (!isValidIso8583Mti1993(mtiStr)) {
+                    // 非法MTI，丢弃当前缓存
+                    in.skipBytes(readableBytes);
+                    log.warn("❌ 半包MTI非法: '{}', 丢弃当前缓存 {} 字节", mtiStr, readableBytes);
+                    out.add(new DecodingError("非法MTI: " + mtiStr));
+                } else {
+                    // MTI合法，重置读取位置等待更多数据
+                    in.resetReaderIndex();
+                    log.debug("⏳ 半包等待中: 需要={}, 当前={}", totalFrameLength, readableBytes);
+                }
+            } else {
+                // 数据不足以读取MTI，重置读取位置等待更多数据
+                in.resetReaderIndex();
+                log.debug("⏳ 半包等待中: 需要={}, 当前={}", totalFrameLength, readableBytes);
+            }
+            return;
+        }
+
+        // 3. 读取并验证MTI
+        String mtiStr = readMtiString(in, in.readerIndex() + LENGTH_FIELD_LENGTH);
+        if (!isValidIso8583Mti1993(mtiStr)) {
+            // 跳过长度字段和无效数据
+            in.skipBytes(totalFrameLength);
+            log.warn("❌ MTI非法: '{}', 跳过当前消息", mtiStr);
+            out.add(new DecodingError("非法MTI: " + mtiStr));
+            return;
+        }
+
+        // 4. 读取完整消息
+        in.skipBytes(LENGTH_FIELD_LENGTH); // 跳过长度字段
+        byte[] messageBytes = new byte[bodyLength];
+        in.readBytes(messageBytes);
+
+        try {
+            IsoMessage isoMessage = messageFactory.parseMessage(messageBytes, 0);
+            if (isoMessage != null) {
+                out.add(isoMessage);
+                log.info("✅ 解析成功 MTI: {}", String.format("%04X", isoMessage.getType()));
+            } else {
+                log.warn("⚠️ 解析返回 null");
+                out.add(new DecodingError("ISO8583解析返回null"));
+            }
+        } catch (Exception e) {
+            log.error("❌ 解析 ISO8583 报文失败", e);
+            out.add(new DecodingError("ISO8583解析异常: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 读取MTI字符串
+     * @param in ByteBuf输入
+     * @param startIndex 开始索引
+     * @return MTI字符串
+     */
+    private String readMtiString(ByteBuf in, int startIndex) {
+        byte[] mtiBytes = new byte[MTI_LENGTH];
+        in.getBytes(startIndex, mtiBytes);
+        return new String(mtiBytes, StandardCharsets.US_ASCII);
     }
 
     /**
@@ -130,5 +152,25 @@ public class Iso8583msgDecoder extends ByteToMessageDecoder {
         if (mti == null) return false;
         String cleanMti = mti.trim();
         return cleanMti.matches("1[0-6][0-3][0-9]");
+    }
+    
+    /**
+     * 解码错误类，用于向上层报告解码过程中的错误
+     */
+    public static class DecodingError {
+        private final String message;
+        
+        public DecodingError(String message) {
+            this.message = message;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        @Override
+        public String toString() {
+            return "ISO8583解码错误: " + message;
+        }
     }
 }

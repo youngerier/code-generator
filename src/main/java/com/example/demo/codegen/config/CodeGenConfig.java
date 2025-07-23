@@ -25,6 +25,8 @@ public class CodeGenConfig {
      * 基础包名
      */
     private String basePackage;
+
+    private String testPackage;
     
     /**
      * 实体包后缀

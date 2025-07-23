@@ -1,8 +1,9 @@
 package com.example.demo.codegen.template;
 
 import com.example.demo.codegen.config.CodeGenConfig;
+import com.example.demo.codegen.core.CodeTemplate;
 import com.example.demo.codegen.core.EntityMetadata;
-import com.example.demo.template.TemplateUtils;
+import com.example.demo.codegen.core.TemplateUtils;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.squareup.javapoet.*;
@@ -23,7 +24,7 @@ public class DtoCodeTemplate implements CodeTemplate {
                 .addAnnotation(Data.class)
                 .addJavadoc(metadata.getClassJavadoc() + "\n");
         
-        // 为每个字段生成属性
+        // 为每个字段生成属�?
         for (FieldDeclaration field : metadata.getFields()) {
             VariableDeclarator variable = field.getVariables().get(0);
             String fieldName = variable.getNameAsString();

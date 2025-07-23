@@ -1,4 +1,4 @@
-package com.example.demo.template;
+package com.example.demo.codegen.core;
 
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;

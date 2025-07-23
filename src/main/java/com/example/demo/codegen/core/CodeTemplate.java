@@ -1,7 +1,6 @@
-package com.example.demo.codegen.template;
+package com.example.demo.codegen.core;
 
 import com.example.demo.codegen.config.CodeGenConfig;
-import com.example.demo.codegen.core.EntityMetadata;
 
 import java.io.IOException;
 

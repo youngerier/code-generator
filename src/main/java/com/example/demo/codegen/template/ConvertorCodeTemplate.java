@@ -1,4 +1,4 @@
-package com.example.demo.template;
+package com.example.demo.codegen.template;
 
 
 import com.squareup.javapoet.*;
@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class MapStructMapperTemplate {
+public class ConvertorCodeTemplate {
 
     private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 

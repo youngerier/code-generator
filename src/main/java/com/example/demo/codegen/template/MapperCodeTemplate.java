@@ -1,8 +1,9 @@
 package com.example.demo.codegen.template;
 
 import com.example.demo.codegen.config.CodeGenConfig;
+import com.example.demo.codegen.core.CodeTemplate;
 import com.example.demo.codegen.core.EntityMetadata;
-import com.example.demo.template.TemplateUtils;
+import com.example.demo.codegen.core.TemplateUtils;
 import com.mybatisflex.core.BaseMapper;
 import com.squareup.javapoet.*;
 

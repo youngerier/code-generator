@@ -1,7 +1,6 @@
 package com.example.demo.codegen.core;
 
 import com.example.demo.codegen.config.CodeGenConfig;
-import com.example.demo.template.TemplateUtils;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
