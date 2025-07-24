@@ -1,24 +1,27 @@
 package com.example.demo.codegen.template;
 
 
-import com.github.javaparser.ast.body.FieldDeclaration;
+import com.example.demo.codegen.config.CodeGenConfig;
+import com.example.demo.codegen.core.CodeTemplate;
+import com.example.demo.codegen.core.EntityMetadata;
+import com.example.demo.codegen.core.TemplateUtils;
 import com.mybatisflex.core.paginate.Page;
 import com.squareup.javapoet.*;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import com.example.demo.codegen.core.TemplateUtils;
 
-public class ServiceCodeTemplate {
+public class ServiceCodeTemplate implements CodeTemplate {
 
-    private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
-    public static void generate(String entityName, String packageName, String idType, String classJavadoc, List<FieldDeclaration> fields) throws IOException {
+    @Override
+    public void generate(EntityMetadata metadata, CodeGenConfig config) throws IOException {
+        String entityName = metadata.getClassName();
+        String packageName = metadata.getBasePackage();
+
         TypeName entityType = ClassName.get(packageName + ".dal.entity", entityName);
-        TypeName idTypeName = TemplateUtils.resolveTypeName(idType);
+        TypeName idTypeName = TemplateUtils.resolveTypeName(metadata.getIdType());
         ClassName queryType = ClassName.get(packageName + ".dto", entityName + "Query");
         ClassName pageType = ClassName.get(Page.class);
         ParameterizedTypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
@@ -69,7 +72,7 @@ public class ServiceCodeTemplate {
 
         TypeSpec service = TypeSpec.interfaceBuilder(entityName + "Service")
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc(classJavadoc + "\nService interface for " + entityName + "\n")
+                .addJavadoc("Service interface for " + entityName + "\n")
                 .addMethod(selectById)
                 .addMethod(insert)
                 .addMethod(updateById)
@@ -81,6 +84,11 @@ public class ServiceCodeTemplate {
         JavaFile javaFile = JavaFile.builder(packageName + ".service", service)
                 .build();
 
-        javaFile.writeTo(OUTPUT_DIR);
+        javaFile.writeTo(config.getOutputDir());
+    }
+
+    @Override
+    public String getTemplateName() {
+        return "service";
     }
 }

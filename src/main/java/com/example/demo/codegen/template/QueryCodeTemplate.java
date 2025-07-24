@@ -11,7 +11,6 @@ import java.nio.file.Paths;
 
 public class QueryCodeTemplate implements CodeTemplate {
 
-    private static final Path OUTPUT_DIR = Paths.get("src/main/java");
 
 
     @Override
@@ -21,6 +20,6 @@ public class QueryCodeTemplate implements CodeTemplate {
 
     @Override
     public String getTemplateName() {
-        return "QueryDTO";
+        return "query";
     }
 }

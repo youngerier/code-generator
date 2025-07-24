@@ -100,6 +100,6 @@ public class ServiceImplCodeTemplate implements CodeTemplate {
     
     @Override
     public String getTemplateName() {
-        return "service";
+        return "serviceimpl";
     }
 }

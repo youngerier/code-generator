@@ -1,20 +1,29 @@
 package com.example.demo.codegen.template;
 
 
-import com.squareup.javapoet.*;
+import com.example.demo.codegen.config.CodeGenConfig;
+import com.example.demo.codegen.core.CodeTemplate;
+import com.example.demo.codegen.core.EntityMetadata;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
 import org.mapstruct.Mapper;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
-public class ConvertorCodeTemplate {
 
-    private static final Path OUTPUT_DIR = Paths.get("src/main/java");
+public class ConvertorCodeTemplate implements CodeTemplate {
 
-    public static void generate(String entityName, String packageName, String classJavadoc) throws IOException {
-        TypeName entityType = ClassName.get(packageName  + ".dal.entity", entityName);
+    @Override
+    public void generate(EntityMetadata metadata, CodeGenConfig config) throws IOException {
+        String entityName = metadata.getClassName();
+        String packageName = metadata.getBasePackage();
+        Path outputDir = config.getOutputDir();
+        TypeName entityType = ClassName.get(packageName + ".dal.entity", entityName);
         ClassName dtoType = ClassName.get(packageName + ".dto", entityName + "Dto");
 
         MethodSpec toEntity = MethodSpec.methodBuilder("toEntity")
@@ -34,7 +43,7 @@ public class ConvertorCodeTemplate {
         TypeSpec mapper = TypeSpec.interfaceBuilder(entityName + "MapStructMapper")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Mapper.class)
-                .addJavadoc(classJavadoc + "\nMapStruct mapper for converting between " + entityName + " and " + entityName + "Dto\n")
+                .addJavadoc("MapStruct mapper for converting between " + entityName + " and " + entityName + "Dto\n")
                 .addMethod(toEntity)
                 .addMethod(toDto)
                 .build();
@@ -42,6 +51,11 @@ public class ConvertorCodeTemplate {
         JavaFile javaFile = JavaFile.builder(packageName + ".mapstruct", mapper)
                 .build();
 
-        javaFile.writeTo(OUTPUT_DIR);
+        javaFile.writeTo(outputDir);
+    }
+
+    @Override
+    public String getTemplateName() {
+        return "convertor";
     }
 }

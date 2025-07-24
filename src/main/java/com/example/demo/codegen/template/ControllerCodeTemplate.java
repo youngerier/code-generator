@@ -31,7 +31,9 @@ public class ControllerCodeTemplate implements CodeTemplate {
         TypeSpec.Builder controllerBuilder = TypeSpec.classBuilder(metadata.getClassName() + "Controller")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(RestController.class)
-                .addAnnotation(RequestMapping("/api/" + metadata.getClassName().toLowerCase()))
+                .addAnnotation(AnnotationSpec.builder(RequestMapping.class)
+                    .addMember("value", "$S", "/api/" + metadata.getClassName().toLowerCase())
+                    .build())
                 .addJavadoc(metadata.getClassJavadoc() + " REST API Controller\n")
                 .addField(FieldSpec.builder(serviceType, "service", Modifier.PRIVATE)
                         .addAnnotation(Autowired.class)
@@ -54,11 +56,11 @@ public class ControllerCodeTemplate implements CodeTemplate {
     private MethodSpec createGetByIdMethod(TypeName returnType, TypeName idTypeName, String entityName) {
         return MethodSpec.methodBuilder("getById")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(GetMapping("/{id}"))
+                .addAnnotation(AnnotationSpec.builder(GetMapping.class).addMember("value", "$S", "/{id}").build())
                 .returns(returnType)
                 .addParameter(idTypeName, "id", Modifier.FINAL)
                 .addStatement("return service.selectById(id)")
-                .addJavadoc("获取$L详情\n@param id $LID\n@return $L详情\n", entityName, entityName, entityName)
+                .addJavadoc("查询$L详情\n@param id $LID\n@return $L详情\n", entityName, entityName, entityName)
                 .build();
     }
 
@@ -67,9 +69,9 @@ public class ControllerCodeTemplate implements CodeTemplate {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(PostMapping.class)
                 .returns(TypeName.VOID)
-                .addParameter(dtoType, "dto", Modifier.FINAL, AnnotationSpec.builder(RequestBody.class).build())
+                .addParameter(ParameterSpec.builder(dtoType, "dto", Modifier.FINAL).addAnnotation(AnnotationSpec.builder(RequestBody.class).addMember("required", "$L", true).build()).build())
                 .addStatement("service.insert(dto)")
-                .addJavadoc("创建�?L\n@param dto $L数据传输对象\n", entityName, entityName)
+                .addJavadoc("创建$L\n@param dto $L数据传输对象\n", entityName, entityName)
                 .build();
     }
 
@@ -78,7 +80,7 @@ public class ControllerCodeTemplate implements CodeTemplate {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(PutMapping.class)
                 .returns(TypeName.VOID)
-                .addParameter(dtoType, "dto", Modifier.FINAL, AnnotationSpec.builder(RequestBody.class).build())
+                .addParameter(ParameterSpec.builder(dtoType, "dto", Modifier.FINAL).addAnnotation(AnnotationSpec.builder(RequestBody.class).addMember("required", "$L", true).build()).build())
                 .addStatement("service.updateById(dto)")
                 .addJavadoc("更新$L\n@param dto $L数据传输对象\n", entityName, entityName)
                 .build();
@@ -87,7 +89,7 @@ public class ControllerCodeTemplate implements CodeTemplate {
     private MethodSpec createDeleteMethod(TypeName idTypeName, String entityName) {
         return MethodSpec.methodBuilder("delete")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(DeleteMapping("/{id}"))
+                .addAnnotation(AnnotationSpec.builder(DeleteMapping.class).addMember("value", "$S", "/{id}").build())
                 .returns(TypeName.VOID)
                 .addParameter(idTypeName, "id", Modifier.FINAL)
                 .addStatement("service.deleteById(id)")
@@ -98,9 +100,9 @@ public class ControllerCodeTemplate implements CodeTemplate {
     private MethodSpec createListMethod(TypeName returnType, TypeName queryType, String entityName) {
         return MethodSpec.methodBuilder("list")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(GetMapping("/list"))
+                .addAnnotation(AnnotationSpec.builder(GetMapping.class).addMember("value", "$S", "/list").build())
                 .returns(returnType)
-                .addParameter(queryType, "query", AnnotationSpec.builder(RequestParam.class).addMember("required", "false").build())
+                .addParameter(ParameterSpec.builder(queryType, "query").addAnnotation(AnnotationSpec.builder(RequestParam.class).addMember("required", "$L", false).build()).build())
                 .addStatement("return service.selectList(query != null ? query : new $T()", queryType)
                 .addJavadoc("查询$L列表\n@param query 查询条件\n@return $L列表\n", entityName, entityName)
                 .build();
@@ -109,11 +111,11 @@ public class ControllerCodeTemplate implements CodeTemplate {
     private MethodSpec createPageMethod(TypeName returnType, TypeName queryType, String entityName) {
         return MethodSpec.methodBuilder("page")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(GetMapping("/page"))
+                .addAnnotation(AnnotationSpec.builder(GetMapping.class).addMember("value", "$S", "/page").build())
                 .returns(returnType)
-                .addParameter(TypeName.INT, "pageNumber", AnnotationSpec.builder(RequestParam.class).addMember("defaultValue", "1").build())
-                .addParameter(TypeName.INT, "pageSize", AnnotationSpec.builder(RequestParam.class).addMember("defaultValue", "10").build())
-                .addParameter(queryType, "query", AnnotationSpec.builder(RequestParam.class).addMember("required", "false").build())
+                .addParameter(ParameterSpec.builder(TypeName.INT, "pageNumber").addAnnotation(AnnotationSpec.builder(RequestParam.class).addMember("defaultValue", "$S", "1").build()).build())
+                .addParameter(ParameterSpec.builder(TypeName.INT, "pageSize").addAnnotation(AnnotationSpec.builder(RequestParam.class).addMember("defaultValue", "$S", "10").build()).build())
+                .addParameter(ParameterSpec.builder(queryType, "query").addAnnotation(AnnotationSpec.builder(RequestParam.class).addMember("required", "$L", false).build()).build())
                 .addStatement("return service.selectPage(pageNumber, pageSize, query != null ? query : new $T())", queryType)
                 .addJavadoc("分页查询$L\n@param pageNumber 页码\n@param pageSize 每页大小\n@param query 查询条件\n@return $L分页结果\n", entityName, entityName)
                 .build();

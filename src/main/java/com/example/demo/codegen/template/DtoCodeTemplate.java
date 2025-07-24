@@ -24,7 +24,7 @@ public class DtoCodeTemplate implements CodeTemplate {
                 .addAnnotation(Data.class)
                 .addJavadoc(metadata.getClassJavadoc() + "\n");
         
-        // 为每个字段生成属�?
+        // 为每个字段生成属性
         for (FieldDeclaration field : metadata.getFields()) {
             VariableDeclarator variable = field.getVariables().get(0);
             String fieldName = variable.getNameAsString();

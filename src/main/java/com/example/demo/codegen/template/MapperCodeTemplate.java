@@ -11,7 +11,7 @@ import javax.lang.model.element.Modifier;
 import java.io.IOException;
 
 /**
- * MyBatis-Flex Mapper代码模板
+ * Mapper代码模板
  */
 public class MapperCodeTemplate implements CodeTemplate {
     
